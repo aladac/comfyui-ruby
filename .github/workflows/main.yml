@@ -1,4 +1,4 @@
-name: Publish Gem
+name: Release
 
 on:
   push:
@@ -8,18 +8,18 @@ on:
 permissions:
   contents: read
   id-token: write
+  packages: write
 
 jobs:
-  publish:
+  rubygems:
+    name: Publish to RubyGems
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
           bundler-cache: true
@@ -29,3 +29,29 @@ jobs:
 
       - name: Publish to RubyGems
         uses: rubygems/release-gem@v1
+
+  github-packages:
+    name: Publish to GitHub Packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Build gem
+        run: gem build comfyui-ruby.gemspec
+
+      - name: Publish to GitHub Packages
+        run: |
+          mkdir -p ~/.gem
+          cat > ~/.gem/credentials <<CRED
+          ---
+          :github: Bearer ${{ secrets.GITHUB_TOKEN }}
+          CRED
+          chmod 0600 ~/.gem/credentials
+          gem push --key github --host https://rubygems.pkg.github.com/aladac comfyui-ruby-*.gem
